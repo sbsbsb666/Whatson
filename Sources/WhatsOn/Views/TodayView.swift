@@ -11,6 +11,7 @@ struct TodayView: View {
                 header
                 cinemaToday
                 gigsThisWeek
+                newReads
                 exhibitionHighlights
                 latestMixes
             }
@@ -25,11 +26,15 @@ struct TodayView: View {
 
     private var greeting: String {
         let hour = Calendar.london.component(.hour, from: model.now)
+        let base: String
         switch hour {
-        case 5..<12: return "Good morning"
-        case 12..<18: return "Good afternoon"
-        default: return "Good evening"
+        case 5..<12: base = "Good morning"
+        case 12..<18: base = "Good afternoon"
+        default: base = "Good evening"
         }
+        // First name from the Mac's account name, e.g. "Sam Bailey" → "Sam".
+        let first = NSFullUserName().split(separator: " ").first.map(String.init) ?? ""
+        return first.isEmpty ? base : "\(base), \(first)"
     }
 
     private var header: some View {
@@ -119,7 +124,27 @@ struct TodayView: View {
                     GigFeatureCard(gig: next).frame(maxWidth: 420)
                 }
             } else {
-                Placeholder(state: model.gigs, empty: "No upcoming London gigs from artists you track.")
+                Placeholder(state: model.gigs, empty: "No upcoming gigs from artists you track.")
+            }
+        }
+    }
+
+    // MARK: Substack
+
+    private var newReads: some View {
+        let posts = Array(model.substack.items.filter { model.now.timeIntervalSince($0.date) < 3 * 86_400 }.prefix(6))
+        let shown = posts.isEmpty ? Array(model.substack.items.prefix(3)) : posts
+        return VStack(alignment: .leading, spacing: 16) {
+            SectionHeader(title: "New reads",
+                          subtitle: shown.isEmpty ? nil : "From the Substacks you follow",
+                          actionTitle: "See All") { navigate(.substack) }
+            if shown.isEmpty {
+                Placeholder(state: model.substack, empty: "No new posts from the Substacks you follow.")
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 240, maximum: 360), spacing: 22, alignment: .top)],
+                          alignment: .leading, spacing: 28) {
+                    ForEach(shown) { SubstackCard(post: $0, now: model.now, showSubtitle: false) }
+                }
             }
         }
     }

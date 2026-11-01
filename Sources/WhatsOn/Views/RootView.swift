@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum Destination: String, CaseIterable, Identifiable {
-    case today, exhibitions, gigs, mixcloud, cinema
+    case today, exhibitions, gigs, cinema, substack, mixcloud
 
     var id: String { rawValue }
 
@@ -12,6 +12,7 @@ enum Destination: String, CaseIterable, Identifiable {
         case .gigs: return "Gigs"
         case .mixcloud: return "Mixcloud"
         case .cinema: return "Cinema"
+        case .substack: return "Substack"
         }
     }
 
@@ -22,6 +23,7 @@ enum Destination: String, CaseIterable, Identifiable {
         case .gigs: return "music.mic"
         case .mixcloud: return "waveform"
         case .cinema: return "film"
+        case .substack: return "text.book.closed"
         }
     }
 }
@@ -38,8 +40,15 @@ struct RootView: View {
             List(selection: $selection) {
                 Label(Destination.today.title, systemImage: Destination.today.symbol)
                     .tag(Destination.today)
-                Section("London") {
-                    ForEach([Destination.exhibitions, .gigs, .mixcloud, .cinema]) { d in
+                Section("Going Out") {
+                    ForEach([Destination.exhibitions, .gigs, .cinema]) { d in
+                        Label(d.title, systemImage: d.symbol)
+                            .badge(badgeCount(for: d))
+                            .tag(d)
+                    }
+                }
+                Section("Reading & Listening") {
+                    ForEach([Destination.substack, .mixcloud]) { d in
                         Label(d.title, systemImage: d.symbol)
                             .badge(badgeCount(for: d))
                             .tag(d)
@@ -70,6 +79,7 @@ struct RootView: View {
         case .gigs: GigsView()
         case .mixcloud: MixcloudView()
         case .cinema: CinemaView()
+        case .substack: SubstackView()
         }
     }
 
@@ -82,6 +92,8 @@ struct RootView: View {
             return model.gigs.items.filter { $0.date < weekEnd }.count
         case .mixcloud:
             return model.mixes.items.filter { model.now.timeIntervalSince($0.date) < 86_400 }.count
+        case .substack:
+            return model.substack.items.filter { model.now.timeIntervalSince($0.date) < 86_400 }.count
         default:
             return 0
         }

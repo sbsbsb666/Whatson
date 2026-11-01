@@ -119,6 +119,30 @@ struct Mix: Codable, Hashable, Identifiable {
     let url: URL
 }
 
+struct SubstackPost: Codable, Hashable, Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String?
+    let publication: String
+    let author: String?
+    let date: Date
+    let url: URL
+    let imageURL: URL?
+    let logoURL: URL?
+    let isPaid: Bool
+    /// "newsletter", "podcast", "video", "thread" …
+    let kind: String?
+
+    var kindSymbol: String? {
+        switch kind {
+        case "podcast": return "headphones"
+        case "video": return "play.rectangle"
+        case "thread": return "bubble.left.and.bubble.right"
+        default: return nil
+        }
+    }
+}
+
 struct Showtime: Codable, Hashable, Identifiable {
     let id: String
     let time: Date

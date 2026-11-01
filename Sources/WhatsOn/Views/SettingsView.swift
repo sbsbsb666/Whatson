@@ -36,6 +36,19 @@ private struct AccountsSettings: View {
                     .foregroundStyle(.secondary)
             }
             Section {
+                TextField("Username", text: $settings.substackUsername, prompt: Text("your Substack @handle"))
+                TextField("Also follow", text: $settings.substackExtra,
+                          prompt: Text("Other publications, one per line — e.g. willstorr or www.thebulwark.com"),
+                          axis: .vertical)
+                    .lineLimit(3...6)
+            } header: {
+                Text("Substack")
+            } footer: {
+                Text("Your subscriptions are read from your public Substack profile. If none show up, turn on showing subscriptions on your Substack profile, or list publications above.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section {
                 TextField("Username", text: $settings.mixcloudUsername, prompt: Text("your Mixcloud username"))
             } header: {
                 Text("Mixcloud")
@@ -390,7 +403,9 @@ private struct DataSettings: View {
             Section("Sources") {
                 source("Cinema", "Clusterflick open data (updated several times a day)", "Reliable")
                 source("Mixcloud", "Official public API", "Reliable")
+                source("Substack", "Your public profile + each publication's archive, RSS as backup", "Reliable")
                 source("Gigs", "Songkick calendar export (iCal)", "Fairly reliable")
+                source("Exhibitions", "GalleriesNow West End page", "May break if GalleriesNow redesigns")
                 source("Exhibitions", "ArtRabbit pages", "May break if ArtRabbit redesigns")
                 source("Exhibitions", "Tate and other gallery websites", "Most fragile")
             }

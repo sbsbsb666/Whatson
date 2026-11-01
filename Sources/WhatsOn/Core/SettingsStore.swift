@@ -73,6 +73,8 @@ final class SettingsStore: ObservableObject {
     @Published var songkickICalURL: String { didSet { Self.store.set(songkickICalURL, forKey: "songkickICalURL") } }
     @Published var londonOnly: Bool { didSet { Self.store.set(londonOnly, forKey: "londonOnly") } }
     @Published var mixcloudUsername: String { didSet { Self.store.set(mixcloudUsername, forKey: "mixcloudUsername") } }
+    @Published var substackUsername: String { didSet { Self.store.set(substackUsername, forKey: "substackUsername") } }
+    @Published var substackExtra: String { didSet { Self.store.set(substackExtra, forKey: "substackExtra") } }
     @Published var galleries: [GalleryConfig] { didSet { Self.save(galleries, "galleries") } }
     @Published var westEndSelected: [String] { didSet { Self.store.set(westEndSelected, forKey: "westEndSelected") } }
     @Published var westEndCatalogue: [WestEndGallery] { didSet { Self.save(westEndCatalogue, "westEndCatalogue") } }
@@ -90,6 +92,8 @@ final class SettingsStore: ObservableObject {
         songkickICalURL = d.string(forKey: "songkickICalURL") ?? ""
         londonOnly = d.object(forKey: "londonOnly") as? Bool ?? true
         mixcloudUsername = d.string(forKey: "mixcloudUsername") ?? ""
+        substackUsername = d.string(forKey: "substackUsername") ?? ""
+        substackExtra = d.string(forKey: "substackExtra") ?? ""
         cinemaVenueIDs = d.stringArray(forKey: "cinemaVenueIDs") ?? Defaults.cinemas.map(\.id)
         knownCinemaVenues = Self.load("knownCinemaVenues") ?? Defaults.cinemas
         westEndSelected = d.stringArray(forKey: "westEndSelected") ?? Defaults.westEndSelected

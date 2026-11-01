@@ -1,6 +1,6 @@
-# What’s On — London
+# What’s On
 
-A native SwiftUI Mac app: Today overview, Exhibitions, Gigs, Mixcloud and Cinema.
+A personal native Mac app: a Today overview of what's on for me — exhibitions, gigs and cinema to go out to, plus new Substack posts and Mixcloud uploads from the people I follow.
 
 ## Install & build (once)
 
@@ -38,7 +38,7 @@ Requires macOS 14 (Sonoma) or later on Apple Silicon.
 
 Open **What’s On → Settings… (⌘,)**:
 
-- **Accounts** — your Songkick and Mixcloud usernames. If gigs don't load from the username, paste your Songkick calendar subscription link instead.
+- **Accounts** — your Songkick, Substack and Mixcloud usernames. Substack reads the subscriptions on your public profile; you can also list extra publications. If gigs don't load from the username, paste your Songkick calendar subscription link instead.
 - **Galleries → West End Galleries** — every private gallery on GalleriesNow's West End page as a checklist, grouped by area. About 28 around Grafton Street are ticked to start (Zwirner, Hauser & Wirth, Pace, Ropac, Sprüth Magers, Max Hetzler, Thomas Dane, Pilar Corrias…). **Select** has quick presets.
 - **Galleries → Museums & Other Galleries** — ArtRabbit pages and museum sites. **+** opens an Add Gallery sheet; double-click a row to edit, right-click to remove.
 - **Cinemas** — Everyman Crystal Palace, BFI Southbank and Barbican are ticked. After the first refresh you can tick any of ~480 London venues.
@@ -51,6 +51,7 @@ Open **What’s On → Settings… (⌘,)**:
 |---|---|---|
 | Cinema | Clusterflick's open data file (all London cinemas, rebuilt several times a day) | **Good.** No scraping on our side. BFI can't be scraped directly (Cloudflare), so this is the best route. The file has no formal schema promise. |
 | Mixcloud | Mixcloud's official public API | **Best.** Can be rate-limited if you follow hundreds of accounts — failures show as a note, not an error. |
+| Substack | Your public profile's subscriptions, then each publication's archive (RSS as backup) | **Good.** Unofficial but long-standing endpoints, with official RSS to fall back on. Needs your subscriptions visible on your profile, or publications listed in Settings. |
 | Gigs | Songkick iCal calendar | **Fairly good.** iCal is a stable format, but Songkick was bought by Suno in late 2025 and the export could change. Any other `.ics` gig calendar can be pasted in instead. |
 | Exhibitions (ArtRabbit) | ArtRabbit organisation pages | **Medium.** One layout for all galleries, so one fix repairs them all. |
 | Exhibitions (Mayfair) | GalleriesNow West End listing — one page, ~60 galleries | **Medium.** A single request; one fix repairs every gallery. |
@@ -68,6 +69,7 @@ DataSources/
   Gigs/SongkickSource.swift
   Gigs/ICalParser.swift
   Mixcloud/MixcloudSource.swift
+  Substack/SubstackSource.swift
   Exhibitions/ExhibitionsSource.swift      ← picks a scraper per gallery
   Exhibitions/ArtRabbitSource.swift
   Exhibitions/GalleriesNowSource.swift

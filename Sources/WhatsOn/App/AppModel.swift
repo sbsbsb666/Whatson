@@ -8,6 +8,7 @@ final class AppModel: ObservableObject {
     @Published var gigs: SectionState<Gig>
     @Published var mixes: SectionState<Mix>
     @Published var cinema: SectionState<CinemaVenue>
+    @Published var substack: SectionState<SubstackPost>
     /// Ticks every minute so "Updated 5 minutes ago" stays fresh.
     @Published var now = Date()
 
@@ -21,6 +22,7 @@ final class AppModel: ObservableObject {
         gigs = SectionState(snapshot: Cache.load("gigs"))
         mixes = SectionState(snapshot: Cache.load("mixcloud"))
         cinema = SectionState(snapshot: Cache.load("cinema"))
+        substack = SectionState(snapshot: Cache.load("substack"))
 
         Timer.publish(every: 60, on: .main, in: .common).autoconnect()
             .sink { [weak self] date in self?.now = date }
@@ -48,6 +50,13 @@ final class AppModel: ObservableObject {
                 Task { await self.refreshExhibitions() }
             }
             .store(in: &bag)
+        settings.$substackUsername.combineLatest(settings.$substackExtra)
+            .dropFirst().debounce(for: .seconds(1.5), scheduler: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { await self.refreshSubstack() }
+            }
+            .store(in: &bag)
         settings.$cinemaVenueIDs
             .dropFirst().debounce(for: .seconds(1.5), scheduler: RunLoop.main)
             .sink { [weak self] _ in
@@ -65,7 +74,7 @@ final class AppModel: ObservableObject {
     }
 
     var isRefreshing: Bool {
-        exhibitions.isLoading || gigs.isLoading || mixes.isLoading || cinema.isLoading
+        exhibitions.isLoading || gigs.isLoading || mixes.isLoading || cinema.isLoading || substack.isLoading
     }
 
     func refreshAll() {
@@ -73,6 +82,14 @@ final class AppModel: ObservableObject {
         Task { await refreshGigs() }
         Task { await refreshMixes() }
         Task { await refreshCinema() }
+        Task { await refreshSubstack() }
+    }
+
+    func refreshSubstack() async {
+        let user = settings.substackUsername, extra = settings.substackExtra
+        await run(\.substack, key: "substack") {
+            try await SubstackSource.fetch(username: user, extra: extra)
+        }
     }
 
     func refreshExhibitions() async {
@@ -150,9 +167,9 @@ final class AppModel: ObservableObject {
 
     var overallUpdatedLabel: String {
         if isRefreshing { return "Updating…" }
-        let dates = [exhibitions.fetchedAt, gigs.fetchedAt, mixes.fetchedAt, cinema.fetchedAt].compactMap { $0 }
-        guard let oldest = dates.min() else { return "London" }
-        return "London · Updated " + relative(oldest)
+        let dates = [exhibitions.fetchedAt, gigs.fetchedAt, mixes.fetchedAt, cinema.fetchedAt, substack.fetchedAt].compactMap { $0 }
+        guard let oldest = dates.min() else { return "" }
+        return "Updated " + relative(oldest)
     }
 
     func relative(_ date: Date?) -> String {

@@ -3,11 +3,20 @@ import Foundation
 /// Exhibitions section: fans out to one scraper per gallery and merges the results.
 /// One gallery failing only adds a warning; the section fails only if every gallery fails.
 enum ExhibitionsSource {
-    static func fetch(galleries: [GalleryConfig]) async throws -> SourceResult<Exhibition> {
+    struct Output {
+        var result: SourceResult<Exhibition>
+        /// Every gallery on the West End page, for the Settings checklist (nil if that page didn't load).
+        var westEndCatalogue: [WestEndGallery]?
+    }
+
+    static func fetch(galleries: [GalleryConfig], westEnd: [String]) async throws -> Output {
         let enabled = galleries.filter { $0.enabled && !$0.url.trimmingCharacters(in: .whitespaces).isEmpty }
-        guard !enabled.isEmpty else {
-            throw FetchError.notConfigured("Add some galleries in Settings to see exhibitions.")
+        guard !enabled.isEmpty || !westEnd.isEmpty else {
+            throw FetchError.notConfigured("Pick some galleries in Settings to see exhibitions.")
         }
+
+        // The West End page (one request covers every Mayfair / St James's gallery) runs alongside the others.
+        async let westEndFetch = westEndResult(selected: westEnd)
 
         let results = await boundedMap(enabled, limit: 4) { gallery -> Result<[Exhibition], Error> in
             do { return .success(try await fetchGallery(gallery)) }
@@ -16,13 +25,31 @@ enum ExhibitionsSource {
 
         var items: [Exhibition] = []
         var warnings: [String] = []
+        var sourcesTried = enabled.count
+        var sourcesFailed = 0
         for (gallery, result) in zip(enabled, results) {
             switch result {
             case .success(let found): items += found
-            case .failure(let error): warnings.append("\(gallery.name): \(describe(error))")
+            case .failure(let error):
+                warnings.append("\(gallery.name): \(describe(error))")
+                sourcesFailed += 1
             }
         }
-        if items.isEmpty && warnings.count == enabled.count {
+
+        var catalogue: [WestEndGallery]?
+        switch await westEndFetch {
+        case .success(let west):
+            catalogue = west.catalogue
+            if !westEnd.isEmpty { items += west.items }
+        case .failure(let error):
+            if !westEnd.isEmpty {
+                warnings.append("West End galleries (GalleriesNow): \(describe(error))")
+                sourcesFailed += 1
+            }
+        }
+        if !westEnd.isEmpty { sourcesTried += 1 }
+
+        if items.isEmpty && sourcesFailed == sourcesTried {
             throw FetchError.parse("None of your galleries could be loaded.")
         }
 
@@ -36,7 +63,12 @@ enum ExhibitionsSource {
             if let start = item.startDate, start > horizon { return false }
             return true
         }
-        return SourceResult(items: filtered, warnings: warnings)
+        return Output(result: SourceResult(items: filtered, warnings: warnings), westEndCatalogue: catalogue)
+    }
+
+    private static func westEndResult(selected: [String]) async -> Result<(items: [Exhibition], catalogue: [WestEndGallery]), Error> {
+        do { return .success(try await GalleriesNowSource.fetchWestEnd(selected: selected)) }
+        catch { return .failure(error) }
     }
 
     static func fetchGallery(_ gallery: GalleryConfig) async throws -> [Exhibition] {

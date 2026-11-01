@@ -39,7 +39,8 @@ Requires macOS 14 (Sonoma) or later on Apple Silicon.
 Open **What’s On → Settings… (⌘,)**:
 
 - **Accounts** — your Songkick and Mixcloud usernames. If gigs don't load from the username, paste your Songkick calendar subscription link instead.
-- **Galleries** — 15 sources are pre-filled, including **Mayfair & St James’s**: every private gallery show around Grafton Street (Zwirner, Hauser & Wirth, Pace, Ropac, Sprüth Magers, Thomas Dane, Pilar Corrias, Alison Jacques, Waddington Custot and more). Its filter column takes postcode districts (`W1S, W1J, W1K, W1B, SW1Y`) — add `W1F, W1D` for Soho or `W1W, W1T` for Fitzrovia, or clear it for the whole West End. Add, remove, untick or reorder.
+- **Galleries → West End Galleries** — every private gallery on GalleriesNow's West End page as a checklist, grouped by area. About 28 around Grafton Street are ticked to start (Zwirner, Hauser & Wirth, Pace, Ropac, Sprüth Magers, Max Hetzler, Thomas Dane, Pilar Corrias…). **Select** has quick presets.
+- **Galleries → Museums & Other Galleries** — ArtRabbit pages and museum sites. **+** opens an Add Gallery sheet; double-click a row to edit, right-click to remove.
 - **Cinemas** — Everyman Crystal Palace, BFI Southbank and Barbican are ticked. After the first refresh you can tick any of ~480 London venues.
 
 ⌘R refreshes everything. Results are cached, so the app opens instantly and works offline.

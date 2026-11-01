@@ -148,6 +148,26 @@ struct CinemaVenue: Codable, Hashable, Identifiable {
     var films: [Film]
 }
 
+/// A private gallery listed on GalleriesNow's West End page.
+struct WestEndGallery: Codable, Hashable, Identifiable {
+    var id: String { name }
+    let name: String
+    /// Postcode district, e.g. "W1S".
+    let postcode: String
+
+    var area: String {
+        switch postcode {
+        case "W1S", "W1J", "W1K": return "Mayfair"
+        case "SW1Y", "SW1A": return "St James’s"
+        case "W1B": return "Regent Street"
+        case "W1F", "W1D": return "Soho"
+        case "W1W", "W1T": return "Fitzrovia"
+        case "W1C", "W1U", "W1H", "W1G": return "Marylebone"
+        default: return postcode
+        }
+    }
+}
+
 struct CinemaVenueRef: Codable, Hashable, Identifiable {
     let id: String
     let name: String

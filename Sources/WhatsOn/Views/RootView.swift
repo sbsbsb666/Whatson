@@ -29,45 +29,35 @@ enum Destination: String, CaseIterable, Identifiable {
 struct RootView: View {
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var updater: Updater
-    @SceneStorage("destination") private var destinationRaw = Destination.today.rawValue
+    @State private var selection: Destination? = .today
 
-    private var destination: Destination { Destination(rawValue: destinationRaw) ?? .today }
-
-    private var selection: Binding<Destination?> {
-        Binding(get: { destination },
-                set: { if let d = $0 { destinationRaw = d.rawValue } })
-    }
+    private var destination: Destination { selection ?? .today }
 
     var body: some View {
         NavigationSplitView {
-            List(selection: selection) {
-                NavigationLink(value: Destination.today) {
-                    Label(Destination.today.title, systemImage: Destination.today.symbol)
-                }
+            List(selection: $selection) {
+                Label(Destination.today.title, systemImage: Destination.today.symbol)
+                    .tag(Destination.today)
                 Section("London") {
                     ForEach([Destination.exhibitions, .gigs, .mixcloud, .cinema]) { d in
-                        NavigationLink(value: d) {
-                            Label(d.title, systemImage: d.symbol)
-                        }
-                        .badge(badgeCount(for: d))
+                        Label(d.title, systemImage: d.symbol)
+                            .badge(badgeCount(for: d))
+                            .tag(d)
                     }
                 }
             }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 210, max: 280)
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 190, ideal: 210, max: 280)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 UpdateBanner()
-                    .animation(.spring(response: 0.35, dampingFraction: 0.9), value: updater.phase)
             }
         } detail: {
             detail
-                .id(destination)
-                .transition(.opacity)
         }
-        .animation(.easeInOut(duration: 0.18), value: destination)
         .toolbar {
             ToolbarItem(placement: .primaryAction) { RefreshButton() }
         }
-        .environment(\.navigate) { destinationRaw = $0.rawValue }
+        .environment(\.navigate) { selection = $0 }
         .sheet(isPresented: $updater.showSheet) {
             UpdateSheet().environmentObject(updater)
         }

@@ -41,8 +41,8 @@ final class AppModel: ObservableObject {
                 Task { await self.refreshMixes() }
             }
             .store(in: &bag)
-        settings.$galleries
-            .dropFirst().debounce(for: .seconds(3), scheduler: RunLoop.main)
+        settings.$galleries.map { _ in () }.merge(with: settings.$westEndSelected.map { _ in () })
+            .dropFirst(2).debounce(for: .seconds(2), scheduler: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self else { return }
                 Task { await self.refreshExhibitions() }
@@ -77,8 +77,13 @@ final class AppModel: ObservableObject {
 
     func refreshExhibitions() async {
         let galleries = settings.galleries
-        await run(\.exhibitions, key: "exhibitions") {
-            try await ExhibitionsSource.fetch(galleries: galleries)
+        let westEnd = settings.westEndSelected
+        await run(\.exhibitions, key: "exhibitions") { [settings] in
+            let output = try await ExhibitionsSource.fetch(galleries: galleries, westEnd: westEnd)
+            if let catalogue = output.westEndCatalogue, !catalogue.isEmpty {
+                settings.mergeWestEndCatalogue(catalogue)
+            }
+            return output.result
         }
     }
 

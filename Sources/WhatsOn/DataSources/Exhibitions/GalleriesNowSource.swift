@@ -15,7 +15,44 @@ import Foundation
 /// FRAGILITY: medium. If it breaks, check that show links still look like /shows/<slug>/ and the
 /// main image still has alt="Image for <Title>, at <Gallery>".
 enum GalleriesNowSource {
+    /// One block on the page. `exhibition` is nil for blocks with no usable dates (e.g. auctions).
+    struct Show {
+        let gallery: String
+        let postcode: String
+        let text: String
+        let exhibition: Exhibition?
+    }
+
+    /// Any GalleriesNow listing page, filtered by `filter` (postcode districts and/or gallery names).
     static func fetch(listing: URL, filter: String, fallbackVenue: String) async throws -> [Exhibition] {
+        let rules = Rules(filter)
+        return try await shows(at: listing, fallbackVenue: fallbackVenue)
+            .filter { rules.matches(text: $0.text, gallery: $0.gallery) }
+            .compactMap(\.exhibition)
+    }
+
+    /// The West End page: shows from the galleries you've ticked, plus the full list of galleries on it.
+    static func fetchWestEnd(selected: [String]) async throws -> (items: [Exhibition], catalogue: [WestEndGallery]) {
+        let all = try await shows(at: Defaults.westEndURL, fallbackVenue: "West End")
+        let wanted = Set(selected.map(normalise))
+        let items = all.filter { wanted.contains(normalise($0.gallery)) }.compactMap(\.exhibition)
+
+        var seen = Set<String>()
+        var catalogue: [WestEndGallery] = []
+        for show in all where !show.gallery.isEmpty && !show.gallery.lowercased().contains("sotheby") {
+            if seen.insert(show.gallery).inserted {
+                catalogue.append(WestEndGallery(name: show.gallery, postcode: show.postcode))
+            }
+        }
+        catalogue.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        return (items, catalogue)
+    }
+
+    private static func normalise(_ s: String) -> String {
+        s.lowercased().trimmingCharacters(in: .whitespaces)
+    }
+
+    private static func shows(at listing: URL, fallbackVenue: String) async throws -> [Show] {
         let html = try await HTTP.text(from: listing)
         let ns = html as NSString
         guard let showLink = try? NSRegularExpression(
@@ -30,22 +67,17 @@ enum GalleriesNowSource {
         }
         guard !starts.isEmpty else { throw FetchError.parse("GalleriesNow's page layout has changed — no shows found.") }
 
-        let rules = Rules(filter)
-        var results: [Exhibition] = []
+        var results: [Show] = []
         for (i, start) in starts.enumerated() {
             let end = i + 1 < starts.count ? starts[i + 1].location : min(ns.length, start.location + 20_000)
             let chunk = ns.substring(with: NSRange(location: start.location, length: max(0, end - start.location)))
-            if let item = parse(chunk: chunk, slug: start.slug, rules: rules, fallbackVenue: fallbackVenue) {
-                results.append(item)
-            }
+            results.append(parse(chunk: chunk, slug: start.slug, fallbackVenue: fallbackVenue))
         }
         return results
     }
 
-    private static func parse(chunk: String, slug: String, rules: Rules, fallbackVenue: String) -> Exhibition? {
+    private static func parse(chunk: String, slug: String, fallbackVenue: String) -> Show {
         let text = HTML.plainText("<a " + chunk)
-        if text.range(of: "auction", options: .caseInsensitive) != nil { return nil }
-        guard let span = DateText.span(in: text), span.end != nil else { return nil }
 
         var title = ""
         var gallery = ""
@@ -67,13 +99,18 @@ enum GalleriesNowSource {
         }
         title = title.trimmingCharacters(in: .whitespaces)
         gallery = gallery.trimmingCharacters(in: .whitespaces)
-        guard !title.isEmpty, rules.matches(text: text, gallery: gallery) else { return nil }
+        let postcode = HTML.firstMatch(#"\b([A-Z]{1,2}\d[A-Z\d]?)\s*\d[A-Z]{2}\b"#, in: text, options: [])?.first ?? ""
 
-        guard let url = URL(string: "https://www.galleriesnow.net/shows/\(slug)/") else { return nil }
-        return Exhibition(id: url.absoluteString, title: title,
-                          venue: gallery.isEmpty ? fallbackVenue : gallery,
-                          startDate: span.start, endDate: span.end,
-                          imageURL: mainImage(in: chunk), url: url)
+        var exhibition: Exhibition?
+        let isAuction = text.range(of: "auction", options: .caseInsensitive) != nil
+        if !isAuction, !title.isEmpty, let span = DateText.span(in: text), span.end != nil,
+           let url = URL(string: "https://www.galleriesnow.net/shows/\(slug)/") {
+            exhibition = Exhibition(id: url.absoluteString, title: title,
+                                    venue: gallery.isEmpty ? fallbackVenue : gallery,
+                                    startDate: span.start, endDate: span.end,
+                                    imageURL: mainImage(in: chunk), url: url)
+        }
+        return Show(gallery: gallery, postcode: postcode, text: text, exhibition: exhibition)
     }
 
     /// The show image (the one whose alt starts "Image for"), handling lazy-loading attributes.
@@ -109,7 +146,10 @@ enum GalleriesNowSource {
         func matches(text: String, gallery: String) -> Bool {
             if postcodes.isEmpty && words.isEmpty { return true }
             for p in postcodes where HTML.firstMatch(#"\b"# + p + #"\s*\d[A-Z]{2}\b"#, in: text) != nil { return true }
-            for w in words where gallery.localizedCaseInsensitiveContains(w) || text.localizedCaseInsensitiveContains(w) { return true }
+            for w in words {
+                let pattern = #"(?<![\w])"# + NSRegularExpression.escapedPattern(for: w) + #"(?![\w])"#
+                if HTML.firstMatch(pattern, in: gallery) != nil { return true }
+            }
             return false
         }
     }

@@ -11,7 +11,7 @@ A native SwiftUI Mac app: Today overview, Exhibitions, Gigs, Mixcloud and Cinema
    Full Xcode also works but isn't needed.
 2. Get the code from its git repository and build:
    ```
-   git clone https://github.com/YOU/whats-on.git ~/WhatsOn
+   git clone https://github.com/sbsbsb666/Whatson.git ~/WhatsOn
    cd ~/WhatsOn
    bash build.sh --install
    ```

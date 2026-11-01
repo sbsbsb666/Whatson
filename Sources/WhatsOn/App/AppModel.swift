@@ -29,19 +29,31 @@ final class AppModel: ObservableObject {
         // Refresh a section shortly after its settings change.
         settings.$songkickUsername.combineLatest(settings.$songkickICalURL, settings.$londonOnly)
             .dropFirst().debounce(for: .seconds(1.5), scheduler: RunLoop.main)
-            .sink { [weak self] _ in Task { await self?.refreshGigs() } }
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { await self.refreshGigs() }
+            }
             .store(in: &bag)
         settings.$mixcloudUsername
             .dropFirst().debounce(for: .seconds(1.5), scheduler: RunLoop.main)
-            .sink { [weak self] _ in Task { await self?.refreshMixes() } }
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { await self.refreshMixes() }
+            }
             .store(in: &bag)
         settings.$galleries
             .dropFirst().debounce(for: .seconds(3), scheduler: RunLoop.main)
-            .sink { [weak self] _ in Task { await self?.refreshExhibitions() } }
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { await self.refreshExhibitions() }
+            }
             .store(in: &bag)
         settings.$cinemaVenueIDs
             .dropFirst().debounce(for: .seconds(1.5), scheduler: RunLoop.main)
-            .sink { [weak self] _ in Task { await self?.refreshCinema() } }
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { await self.refreshCinema() }
+            }
             .store(in: &bag)
     }
 

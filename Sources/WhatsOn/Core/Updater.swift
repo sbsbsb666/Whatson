@@ -59,7 +59,10 @@ final class Updater: ObservableObject {
             await checkAutomatically()
         }
         timer = Timer.publish(every: 6 * 3600, on: .main, in: .common).autoconnect()
-            .sink { [weak self] _ in Task { await self?.checkAutomatically() } }
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { await self.checkAutomatically() }
+            }
     }
 
     private func checkAutomatically() async {
@@ -136,8 +139,10 @@ final class Updater: ObservableObject {
             try await git(["clean", "-fd"])   // keeps ignored .build cache for faster rebuilds
 
             appendLog("Building — this takes a minute or two…\n")
-            try await Shell.run("/bin/bash", ["build.sh", "--no-dmg"], in: Self.sourceDirectory) { [weak self] chunk in
-                Task { @MainActor in self?.appendLog(chunk) }
+            // Updater is main-actor isolated (so safe to capture); it lives for the app's lifetime.
+            let updater = self
+            try await Shell.run("/bin/bash", ["build.sh", "--no-dmg"], in: Self.sourceDirectory) { chunk in
+                Task { @MainActor in updater.appendLog(chunk) }
             }
 
             let built = Self.sourceDirectory.appendingPathComponent("build").appendingPathComponent("What’s On.app")
